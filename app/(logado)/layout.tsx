@@ -39,40 +39,45 @@ export default function LogadoLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-black text-white">
-      <aside className="w-56 border-r border-gray-700 px-4 py-6">
-        <h2 className="text-xl font-bold mb-8 text-center">
+    <div
+      className={`flex min-h-screen ${poppins.className}`}
+      style={{
+        background: "linear-gradient(180deg, #ffffff 40%, #def2f7ff 100%)",
+      }}
+    >
+      <aside className="w-56 border-r border-gray-300 px-4 py-6">
+        <h2 className="text-xl font-bold mb-8 text-center text-black">
           Bolão CP 2026
         </h2>
 
         <nav>
-          <ul className="flex flex-col gap-4 text-sm font-semibold">
-             <li>
-              <Link href="/tabela-completa" className="hover:text-yellow-400 block">
+          <ul className="flex flex-col gap-4 text-sm font-semibold text-black">
+            <li>
+              <Link href="/tabela-completa" className="hover:text-yellow-500 block">
                 Tabela Completa
               </Link>
             </li>
-            
+
             <li>
-              <Link href="/palpites" className="hover:text-yellow-400 block">
+              <Link href="/palpites" className="hover:text-yellow-500 block">
                 Palpites
               </Link>
             </li>
 
             <li>
-              <Link href="/ranking" className="hover:text-yellow-400 block">
+              <Link href="/ranking" className="hover:text-yellow-500 block">
                 Ranking
               </Link>
             </li>
 
             <li>
-              <Link href="/g4-z4" className="hover:text-yellow-400 block">
+              <Link href="/g4-z4" className="hover:text-yellow-500 block">
                 Teste
               </Link>
             </li>
 
             <li>
-              <Link href="/perfil" className="hover:text-yellow-400 block">
+              <Link href="/perfil" className="hover:text-yellow-500 block">
                 Meu Perfil
               </Link>
             </li>
@@ -80,7 +85,7 @@ export default function LogadoLayout({
         </nav>
       </aside>
 
-      <main className="flex-1 p-6 overflow-y-auto">
+      <main className="flex-1 p-6 overflow-y-auto text-black">
         {children}
       </main>
     </div>

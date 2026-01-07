@@ -24,8 +24,53 @@ function Rodadas() {
   const [palpites, setPalpites] = useState<Record<number, { m?: string; v?: string }>>({})
   const [jogoCapitao, setJogoCapitao] = useState<number | null>(null)
   const [agora, setAgora] = useState(new Date())
-  const [salvo, setSalvo] = useState(false)
+  const [salvando, setSalvando] = useState(false)
+  const [salvo, setSalvo] = useState(true)
   const USER_ID = 'b0714f59-4e83-4a47-b240-8f53989545f3'
+  const [userId, setUserId] = useState<string | null>(null)
+  const [mensagem, setMensagem] = useState("")
+
+
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUserId(data.user.id)
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!userId) return
+
+    async function carregarPalpites() {
+      const { data, error } = await supabase
+        .from("palpites")
+        .select("*")
+        .eq("user_id", userId)
+
+      if (error || !data) return
+
+      const mapa: Record<number, { m?: string; v?: string }> = {}
+      let capitao: number | null = null
+
+      data.forEach(p => {
+        mapa[p.match_id] = {
+          m: p.palpite_home?.toString(),
+          v: p.palpite_away?.toString(),
+        }
+
+        if (p.capitao) {
+          capitao = p.match_id
+        }
+      })
+
+      setPalpites(mapa)
+      setJogoCapitao(capitao)
+    }
+
+    carregarPalpites()
+  }, [userId])
 
 
   useEffect(() => {
@@ -114,27 +159,39 @@ function Rodadas() {
     return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
   }
 
-  async function salvarPalpites() {
-    const registros = Object.entries(palpites).map(([matchId, p]) => ({
-      user_id: USER_ID,
-      match_id: Number(matchId),
-      palpite_home: Number(p.m),
-      palpite_away: Number(p.v),
-      capitao: jogoCapitao === Number(matchId),
-    }))
+async function salvarPalpites() {
+  if (!userId || salvando || salvo) return
 
-    const { error } = await supabase
-      .from('palpites')
-      .upsert(registros, {
-        onConflict: 'user_id,match_id',
-      })
+  setSalvando(true)
 
-    if (!error) setSalvo(true)
+  const registros = Object.entries(palpites).map(([matchId, p]) => ({
+    user_id: userId,
+    match_id: matchId,
+    palpite_home: p.m === "" || p.m == null ? null : Number(p.m),
+    palpite_away: p.v === "" || p.v == null ? null : Number(p.v),
+    capitao: jogoCapitao === Number(matchId),
+  }))
+
+  const { error } = await supabase
+    .from("palpites")
+    .upsert(registros, {
+      onConflict: "user_id,match_id",
+    })
+
+  setSalvando(false)
+
+  if (!error) {
+    console.error("SUPABASE ERROR:", error)
+    return
   }
+
+  setSalvo(true)
+}
+
 
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen text-black p-6">
       <h1 className="text-3xl font-bold text-center mb-4">Palpites</h1>
 
       <div className="flex justify-center items-center gap-2 mb-4">
@@ -209,9 +266,9 @@ function Rodadas() {
           return (
             <div
               key={jogo.id}
-              className={`w-full max-w-3xl bg-white text-black rounded-[13px] p-4
+              className={`w-full max-w-3xl bg-white shadow-md text-black rounded-[13px] p-4
               ${aberto ? "transition-transform hover:scale-[1.03]" : ""}
-              ${isCapitao ? "border-4 border-yellow-400" : "border"}
+              ${isCapitao ? "border-3 border-yellow-400" : ""}
               ${salvo ? "font-bold" : ""}`}
             >
               <div className="flex justify-between mb-3 text-sm">
@@ -222,7 +279,10 @@ function Rodadas() {
                     type="checkbox"
                     checked={isCapitao}
                     disabled={!aberto}
-                    onChange={() => setJogoCapitao(isCapitao ? null : jogo.id)}
+                    onChange={() => {
+                      setJogoCapitao(isCapitao ? null : jogo.id)
+                      setSalvo(false)
+                    }}
                   />
                   Jogo Capitão
                 </label>
@@ -237,12 +297,13 @@ function Rodadas() {
                   className="w-8 border rounded-[6px] text-center font-bold appearance-none"
                   disabled={!aberto}
                   value={palpites[jogo.id]?.m || ""}
-                  onChange={e =>
+                  onChange={e => {
                     setPalpites(p => ({
                       ...p,
                       [jogo.id]: { ...p[jogo.id], m: e.target.value },
                     }))
-                  }
+                    setSalvo(false)
+                  }}
                 />
 
                 <span>x</span>
@@ -253,12 +314,13 @@ function Rodadas() {
                   className="w-8 border rounded-[6px] text-center font-bold appearance-none"
                   disabled={!aberto}
                   value={palpites[jogo.id]?.v || ""}
-                  onChange={e =>
+                  onChange={e => {
                     setPalpites(p => ({
                       ...p,
                       [jogo.id]: { ...p[jogo.id], v: e.target.value },
                     }))
-                  }
+                    setSalvo(false)
+                  }}
                 />
 
                 <span>{jogo.visitante}</span>
@@ -267,18 +329,27 @@ function Rodadas() {
           )
         })}
       </div>
+      
+
 
       {aberto && (
         <div className="flex justify-center mt-8">
           <button
-            onClick={salvarPalpites}
-            className="bg-yellow-400 text-black px-4 py-1 rounded-[11px] font-bold"
-          >
-            Salvar Palpites
-          </button>
+  onClick={salvarPalpites}
+  disabled={salvo || salvando}
+  className={`
+    px-6 py-3 rounded-[11px] font-bold transition
+    ${salvo
+      ? "bg-green-400 text-white cursor-not-allowed"
+      : "bg-blue-600 text-white hover:brightness-95 hover:scale-105 active:scale-100"}
+  `}
+>
+  {salvo ? "Palpites Salvos!" : salvando ? "Salvando..." : "Salvar Palpites"}
+</button>
+
         </div>
       )}
-    </div>
+      </div>
   )
 }
 
@@ -330,7 +401,7 @@ function Campeonato() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
+    <div className="min-h-screen text-black p-6">
       <h1 className="text-3xl font-bold text-center mb-2">
         G4 / Z4 / Artilheiro / Garçom
       </h1>
@@ -340,13 +411,13 @@ function Campeonato() {
           <span className="text-green-400 animate-pulse text-sm">●</span>
           <span className="text-green-400 font-bold">Palpites Abertos</span>
         </div>
-        <div className="text-blue-300 italic text-sm mt-1">
+        <div className="text-blue-900 italic text-sm mt-1">
           Fecham em 12:34:56
         </div>
       </div>
 
       <div className="flex justify-center gap-6 mb-6">
-        <div className="w-[360px] bg-white/20 rounded-[13px] p-2 space-y-3">
+        <div className="w-[360px] bg-white/20 shadow-md rounded-[13px] p-2 space-y-3 transition-transform hover:scale-[1.03]">
         <h2 className="text-center font-bold mb-3">G4</h2>
           {renderLinha('1º', g4, setG4, 0)}
           {renderLinha('2º', g4, setG4, 1)}
@@ -354,7 +425,7 @@ function Campeonato() {
           {renderLinha('4º', g4, setG4, 3)}
         </div>
 
-        <div className="w-[360px] bg-white/20 rounded-[13px] p-2 space-y-3">
+        <div className="w-[360px] bg-white/20 shadow-md rounded-[13px] p-2 space-y-3 transition-transform hover:scale-[1.03]">
         <h2 className="text-center font-bold mb-3">Z4</h2>
           {renderLinha('17º', z4, setZ4, 0)}
           {renderLinha('18º', z4, setZ4, 1)}
@@ -364,7 +435,7 @@ function Campeonato() {
       </div>
 
       <div className="flex justify-center mb-8">
-        <div className="w-[744px] bg-white/20 rounded-[13px] p-2">
+        <div className="w-[744px] bg-white/20 shadow-md rounded-[13px] p-2 transition-transform hover:scale-[1.03]">
           <div className="bg-white rounded-[11px] p-3 grid grid-cols-2 gap-4">
             <div>
               <h3 className="font-bold mb-2 text-black">Artilheiro</h3>
@@ -410,14 +481,14 @@ export default function Page() {
       <div className="absolute top-4 left-60 flex gap-2 z-50">
         <button
           onClick={() => setAba('rodadas')}
-          className={`px-3 py-0.5 rounded-[11px] font-bold ${aba === 'rodadas' ? 'bg-yellow-400 text-black' : 'bg-white text-black opacity-40'}`}
+          className={`px-3 py-0.5 rounded-[11px] font-bold ${aba === 'rodadas' ? 'bg-yellow-400 text-black' : 'bg-gray-300 text-black opacity-40 shadow-md'}`}
         >
           Rodadas
         </button>
 
         <button
           onClick={() => setAba('campeonato')}
-          className={`px-3 py-0.5 rounded-[11px] font-bold ${aba === 'campeonato' ? 'bg-yellow-400 text-black' : 'bg-white text-black opacity-40'}`}
+          className={`px-3 py-0.5 rounded-[11px] font-bold ${aba === 'campeonato' ? 'bg-yellow-400 text-black' : 'bg-gray-300 text-black opacity-40 shadow-md'}`}
         >
           Campeonato
         </button>
