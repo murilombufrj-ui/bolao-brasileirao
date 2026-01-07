@@ -1,5 +1,7 @@
 "use client" 
 
+console.log("PAGE PALPITES CARREGOU")
+
 import { useEffect, useState } from "react"
 import { createClient } from '@supabase/supabase-js'
 
@@ -26,11 +28,8 @@ function Rodadas() {
   const [agora, setAgora] = useState(new Date())
   const [salvando, setSalvando] = useState(false)
   const [salvo, setSalvo] = useState(true)
-  const USER_ID = 'b0714f59-4e83-4a47-b240-8f53989545f3'
   const [userId, setUserId] = useState<string | null>(null)
   const [mensagem, setMensagem] = useState("")
-
-console.log("USER ID LOGADO:", userId)
 
 useEffect(() => {
   supabase.auth.getSession().then(({ data }) => {
