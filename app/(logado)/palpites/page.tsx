@@ -30,7 +30,17 @@ function Rodadas() {
   const [userId, setUserId] = useState<string | null>(null)
   const [mensagem, setMensagem] = useState("")
 
+console.log("USER ID LOGADO:", userId)
 
+useEffect(() => {
+  supabase.auth.getSession().then(({ data }) => {
+    console.log("SESSION:", data.session)
+  })
+
+  supabase.auth.getUser().then(({ data }) => {
+    console.log("USER:", data.user)
+  })
+}, [])
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -187,7 +197,6 @@ async function salvarPalpites() {
   setSalvo(true)
   setTimeout(() => setSalvo(true), 2000)
 }
-
 
 
   return (
