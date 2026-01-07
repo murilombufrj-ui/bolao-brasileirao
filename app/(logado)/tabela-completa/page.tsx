@@ -66,7 +66,7 @@ export default function TabelaCompletaPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-black">
-        Tabela Completa do Bolão
+        Tabela Completa
       </h1>
 
       <div className="overflow-x-auto bg-white rounded-xl shadow">
@@ -97,7 +97,7 @@ export default function TabelaCompletaPage() {
                 <td className="p-2 text-black">{jogo.rodada}</td>
                 <td className="p-2 text-black">{jogo.data}</td>
                 <td className="p-2 text-black">{jogo.horario}</td>
-                <td className="p-2 text-black font-semibold">
+                <td className="p-2 text-black text-right font-semibold">
                   {jogo.mandante}
                 </td>
 

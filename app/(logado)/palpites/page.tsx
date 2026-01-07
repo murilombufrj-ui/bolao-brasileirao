@@ -184,8 +184,8 @@ async function salvarPalpites() {
     console.error("SUPABASE ERROR:", error)
     return
   }
-
   setSalvo(true)
+  setTimeout(() => setSalvo(true), 2000)
 }
 
 
